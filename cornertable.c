@@ -24,6 +24,41 @@
 #include "cube.h"
 
 /*
+ * Maps corner locations to indexes 0-7.
+ */
+int corner_index[] = {
+    [0]  = 0,
+    [2]  = 1,
+    [5]  = 2,
+    [7]  = 3,
+    [12] = 4,
+    [14] = 5,
+    [17] = 6,
+    [19] = 7
+};
+
+/*
+ * Used to calculate the corner cubie's value in the variable radix number
+ * system.  The first call to this function will yield a number from 0-7
+ * depending on the cubie chosen.  The next call will yield 0-6, then 0-5, etc.
+ * This is accomplished by decrementing the value of every slot after the
+ * position given.
+ */
+int corner_value(int position, int corner_slot_value[])
+{
+    // Convert position to a number 0-7
+    position = corner_index[position];
+
+    // Decrement the value of all positions after this one
+    int i;
+    for (i=position+1; i<=7; i++) {
+        corner_slot_value[i]--;
+    }
+
+    return corner_slot_value[position];
+}
+
+/*
  * cornertable.c
  * this has functions to generate the 88179840 element corner heuristics table,
  * as well as methods to use it
@@ -34,71 +69,44 @@
  * Input: a cube_type string
  * Output: An integer in the range 0 to 88179840-1
  *
- * How this works:
- * First find which permutation the 8 corner cubies are in with respect
- * to their position. There are 8! permutations, and are mapped
- * to a number 0 through 8!-1.
- * To do this, first the inversion vector is computed. Then, the vector
- * is treated as a factoradic number and is converted into decimal.
- *
- * The rotations also need to be factored in. There are 3^7 rotation
- * configurations. Since each rotation is independent (discarding the last
- * cubie which is determined by the other 7) I treat the rotations as a 7 digit
- * number in base 3. It's converted to decimal to get a number 0 though 3^7-1
- *
- * These two numbers are then combined thusly:
- * permutation * 3^7 + rotation
+ * TODO
  */
 int corner_map(const char *cubestr)
 {
     int index;
 
-    int inversions[8] = {0,0,0,0,0,0,0,0};
-    int positions[8];
-    int i, j;
+    // Positions
+    // Determine a value 
+    int corner_slot_value[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    int position_value[7];
+    position_value[0] = corner_value(CUBIE(cubestr, 0)[0], corner_slot_value);
+    position_value[1] = corner_value(CUBIE(cubestr, 2)[0], corner_slot_value);
+    position_value[2] = corner_value(CUBIE(cubestr, 5)[0], corner_slot_value);
+    position_value[3] = corner_value(CUBIE(cubestr, 7)[0], corner_slot_value);
+    position_value[4] = corner_value(CUBIE(cubestr, 12)[0], corner_slot_value);
+    position_value[5] = corner_value(CUBIE(cubestr, 14)[0], corner_slot_value);
+    position_value[6] = corner_value(CUBIE(cubestr, 17)[0], corner_slot_value);
 
-    // Put all the positions into the positions array
-    positions[0] = CUBIE(cubestr,0)[0];
-    positions[1] = CUBIE(cubestr,2)[0];
-    positions[2] = CUBIE(cubestr,5)[0];
-    positions[3] = CUBIE(cubestr,7)[0];
-    positions[4] = CUBIE(cubestr,12)[0];
-    positions[5] = CUBIE(cubestr,14)[0];
-    positions[6] = CUBIE(cubestr,17)[0];
-    positions[7] = CUBIE(cubestr,19)[0];
+    // Positions
+    index =  position_value[0] *3*3*3*3*3*3*3 * 2*3*4*5*6*7; // (0:7) * base
+    index += position_value[1] *3*3*3*3*3*3*3 * 2*3*4*5*6;   // (0:6) * base
+    index += position_value[2] *3*3*3*3*3*3*3 * 2*3*4*5;     // (0:5) * base
+    index += position_value[3] *3*3*3*3*3*3*3 * 2*3*4;       // (0:4) * base
+    index += position_value[4] *3*3*3*3*3*3*3 * 2*3;         // (0:3) * base
+    index += position_value[5] *3*3*3*3*3*3*3 * 2;           // (0:2) * base
+    index += position_value[6] *3*3*3*3*3*3*3;               // (0:1) * base
 
-    for (i=0; i<8; i++)
-        for (j=i+1; j<8; j++)
-            if (positions[i] > positions[j])
-                inversions[i]++;
-
-    // the inversion vector is computed. Now compute the permutation index
-    // using factoradic numbering
-    index =  inversions[0] * 7*6*5*4*3*2*1;
-    index += inversions[1] * 6*5*4*3*2*1;
-    index += inversions[2] * 5*4*3*2*1;
-    index += inversions[3] * 4*3*2*1;
-    index += inversions[4] * 3*2*1;
-    index += inversions[5] * 2*1;
-    index += inversions[6] * 1;
-    index += inversions[7]; // * 0!
-
-    index *= 2187; // (3^7)
-
-    // Now compute the rotations and add them into the index
-    // treat each rotation value as a digit in base 3
-    // skip the last one
-    index += CUBIE(cubestr,0)[1] * 3*3*3*3*3*3;
-    index += CUBIE(cubestr,2)[1] * 3*3*3*3*3;
-    index += CUBIE(cubestr,5)[1] * 3*3*3*3;
-    index += CUBIE(cubestr,7)[1] * 3*3*3;
-    index += CUBIE(cubestr,12)[1]* 3*3;
-    index += CUBIE(cubestr,14)[1]* 3;
-    index += CUBIE(cubestr,17)[1];
-
+    // Orientations
+    index += CUBIE(cubestr,0)[1]  *3*3*3*3*3*3; // (0:3) * base
+    index += CUBIE(cubestr,2)[1]  *3*3*3*3*3;   // (0:3) * base
+    index += CUBIE(cubestr,5)[1]  *3*3*3*3;     // (0:3) * base
+    index += CUBIE(cubestr,7)[1]  *3*3*3;       // (0:3) * base
+    index += CUBIE(cubestr,12)[1] *3*3;         // (0:3) * base
+    index += CUBIE(cubestr,14)[1] *3;           // (0:3) * base
+    index += CUBIE(cubestr,17)[1];              // (0:3) * base
 
 #ifdef DEBUG_ASSERTS
-    if (index >= 88179840) {
+    if (index >= 88179840 || index < 0) {
         fprintf(stderr, "\nWARNING: HASH RETURNED %d\n", index);
         index = *((int *)0x0); /* sigsev */
     }
@@ -130,17 +138,16 @@ int corner_generate(unsigned char *cornertable, const char *solution)
     int depth;
     cube_type turned;
 
-
     /* Create a stack */
     stack = STACK_NEW;
 
     /*
-     * create a temporary table to keep track of the stack This holds the value
-     * of each item that has been added to the stack, and its distance.  This
-     * way, we know if we encounter the same node but at a further distance we
-     * can throw it away.  This heuristic cuts down on processing time by quite
-     * a bit, and is only as time intensive as the hashing algorithm, at the
-     * expense of using more memory.
+     * create a temporary table to keep track of the stack.  This holds the
+     * value of each item that has been added to the stack, and its distance.
+     * This way, we know if we encounter the same node but at a further
+     * distance we can throw it away.  This heuristic cuts down on processing
+     * time by quite a bit, and is only as time intensive as the hashing
+     * algorithm, at the expense of using more memory.
      */
     instack = CORNER_TABLE_NEW;
 
