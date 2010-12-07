@@ -24,6 +24,12 @@
 #include "cube.h"
 
 /*
+ * cornertable.c
+ * This has functions to generate the 88179840 element corner heuristics table,
+ * as well as methods to use it
+ */
+
+/*
  * Maps corner locations to indexes 0-7.
  */
 int corner_index[] = {
@@ -38,18 +44,23 @@ int corner_index[] = {
 };
 
 /*
- * Used to calculate the corner cubie's value in the variable radix number
- * system.  The first call to this function will yield a number from 0-7
+ * Calculates the corner cubie's permutation's value in the mixed radix number
+ * system.
+ * 
+ * The first call to this function will yield a number from 0-7
  * depending on the cubie chosen.  The next call will yield 0-6, then 0-5, etc.
  * This is accomplished by decrementing the value of every slot after the
  * position given.
+ * 
+ * corner_slot_value[8] should be initialized to:
+ *   int corner_slot_value[] = {0, 1, 2, 3, 4, 5, 6, 7};
  */
-int corner_value(int position, int corner_slot_value[])
+int corner_value(int position, int corner_slot_value[8])
 {
-    // Convert position to a number 0-7
+    /* Convert position to a number 0-7 */
     position = corner_index[position];
 
-    // Decrement the value of all positions after this one
+    /* Decrement the value of all positions after this one. */
     int i;
     for (i=position+1; i<=7; i++) {
         corner_slot_value[i]--;
@@ -59,26 +70,32 @@ int corner_value(int position, int corner_slot_value[])
 }
 
 /*
- * cornertable.c
- * this has functions to generate the 88179840 element corner heuristics table,
- * as well as methods to use it
- */
-
-/*
  * corner_map
- * Input: a cube_type string
+ * Input: A cube_type string
  * Output: An integer in the range 0 to 88179840-1
  *
- * TODO
+ * The map is accomplished by using a mixed radix (base) number system.  The
+ * radix starts at 88179840/8 for the first corner permutation.  For each
+ * permutation, the radix is divided by the number of possible values at that
+ * position.
+ *
+ * The number of possible values for permutations is 8, 7, 6, 5, 4, 3, and 2.
+ * The number of possible values for orientations is 3.
+ *
+ * This problem can also be viewed as dividing the whole 88179840 space into 8
+ * parts, then dividing that into 7 parts, then dividing that... etc.  The
+ * subdivisions that the result is in depends on the permutation and
+ * orientation of each cubie.
  */
 int corner_map(const char *cubestr)
 {
-    int index;
-
-    // Positions
-    // Determine a value 
+    int index; /* Return value */
     int corner_slot_value[] = {0, 1, 2, 3, 4, 5, 6, 7};
-    int position_value[7];
+    int position_value[7]; /* Digit at the ith position.  position_value[0] is
+                            * the most significant digit.
+                            */
+
+    /* Calculate 0-7 digit values for each corner's permutation. */
     position_value[0] = corner_value(CUBIE(cubestr, 0)[0], corner_slot_value);
     position_value[1] = corner_value(CUBIE(cubestr, 2)[0], corner_slot_value);
     position_value[2] = corner_value(CUBIE(cubestr, 5)[0], corner_slot_value);
@@ -87,23 +104,30 @@ int corner_map(const char *cubestr)
     position_value[5] = corner_value(CUBIE(cubestr, 14)[0], corner_slot_value);
     position_value[6] = corner_value(CUBIE(cubestr, 17)[0], corner_slot_value);
 
-    // Positions
-    index =  position_value[0] *3*3*3*3*3*3*3 * 2*3*4*5*6*7; // (0:7) * base
-    index += position_value[1] *3*3*3*3*3*3*3 * 2*3*4*5*6;   // (0:6) * base
-    index += position_value[2] *3*3*3*3*3*3*3 * 2*3*4*5;     // (0:5) * base
-    index += position_value[3] *3*3*3*3*3*3*3 * 2*3*4;       // (0:4) * base
-    index += position_value[4] *3*3*3*3*3*3*3 * 2*3;         // (0:3) * base
-    index += position_value[5] *3*3*3*3*3*3*3 * 2;           // (0:2) * base
-    index += position_value[6] *3*3*3*3*3*3*3;               // (0:1) * base
+    /* Permutations
+     * We start with the most signigicant position and work our way down.
+     * index += positional_value * base (radix)
+     */
+                 // 88179840 = *3*3*3*3*3*3*3 * 2*3*4*5*6*7*8;
+    index =  position_value[0] *3*3*3*3*3*3*3 * 2*3*4*5*6*7; // (0 to 7) * base
+    index += position_value[1] *3*3*3*3*3*3*3 * 2*3*4*5*6;   // (0 to 6) * base
+    index += position_value[2] *3*3*3*3*3*3*3 * 2*3*4*5;     // (0 to 5) * base
+    index += position_value[3] *3*3*3*3*3*3*3 * 2*3*4;       // (0 to 4) * base
+    index += position_value[4] *3*3*3*3*3*3*3 * 2*3;         // (0 to 3) * base
+    index += position_value[5] *3*3*3*3*3*3*3 * 2;           // (0 to 2) * base
+    index += position_value[6] *3*3*3*3*3*3*3;               // (0 to 1) * base
 
-    // Orientations
-    index += CUBIE(cubestr,0)[1]  *3*3*3*3*3*3; // (0:3) * base
-    index += CUBIE(cubestr,2)[1]  *3*3*3*3*3;   // (0:3) * base
-    index += CUBIE(cubestr,5)[1]  *3*3*3*3;     // (0:3) * base
-    index += CUBIE(cubestr,7)[1]  *3*3*3;       // (0:3) * base
-    index += CUBIE(cubestr,12)[1] *3*3;         // (0:3) * base
-    index += CUBIE(cubestr,14)[1] *3;           // (0:3) * base
-    index += CUBIE(cubestr,17)[1];              // (0:3) * base
+    /* Orientations
+     * index += positional_value * base (radix)
+     * Unlike positions, the base is always 3 for the orientations
+     */
+    index += CUBIE(cubestr,0)[1]  *3*3*3*3*3*3; // (0 to 3) * base
+    index += CUBIE(cubestr,2)[1]  *3*3*3*3*3;   // (0 to 3) * base
+    index += CUBIE(cubestr,5)[1]  *3*3*3*3;     // (0 to 3) * base
+    index += CUBIE(cubestr,7)[1]  *3*3*3;       // (0 to 3) * base
+    index += CUBIE(cubestr,12)[1] *3*3;         // (0 to 3) * base
+    index += CUBIE(cubestr,14)[1] *3;           // (0 to 3) * base
+    index += CUBIE(cubestr,17)[1];              // (0 to 3) * base
 
 #ifdef DEBUG_ASSERTS
     if (index >= 88179840 || index < 0) {
