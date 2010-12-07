@@ -58,31 +58,40 @@ int solve(char *tosolve)
     fprintf(stderr, "Loading tables...\n");
 
     corner_table = CORNER_TABLE_NEW;
-    input = fopen("table_corner.rht", "r");
-    if (!corner_read(corner_table, input)) {
-        printf("Warning: could not open corner table\n");
+    if (!(input = fopen("table_corner.rht", "r"))) {
+        printf("Warning: Could not find or read table_corner.rht\n");
+        corner_table = NULL;
+    } else if (!corner_read(corner_table, input)) {
+        printf("Warning: table_corner.rht is invalid\n");
         free(corner_table);
         corner_table = NULL;
+    } else {
+        fclose(input);
     }
-    fclose(input);
 
     edge_table = EDGE_TABLE_NEW;
-    input = fopen("table_edge1.rht", "r");
-    if (!edge_read(edge_table, input)) {
-        printf("Warning: could not open edge table\n");
+    if (!(input = fopen("table_edge1.rht", "r"))) {
+        printf("Warning: Could not find or read table_edge1.rht\n");
+        edge_table = NULL;
+    } else if (!edge_read(edge_table, input)) {
+        printf("Warning: table_edge1.rht is invalid\n");
         free(edge_table);
         edge_table = NULL;
+    } else {
+        fclose(input);
     }
-    fclose(input);
 
     edge_table2 = EDGE_TABLE_NEW;
-    input = fopen("table_edge2.rht", "r");
-    if (!edge_read(edge_table2, input)) {
-        printf("Warning: could not open second edge table\n");
+    if (!(input = fopen("table_edge2.rht", "r"))) {
+        printf("Warning: Could not find or read table_edge2.rht\n");
+        edge_table2 = NULL;
+    } else if (!edge_read(edge_table2, input)) {
+        printf("Warning: table_edge2.rht is invalid\n");
         free(edge_table2);
         edge_table2 = NULL;
+    } else {
+        fclose(input);
     }
-    fclose(input);
 
     cube_120convert(tosolve, tosolve_converted);
     goal_solve(tosolve_converted, cube_solved, corner_table, edge_table,
