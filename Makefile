@@ -27,7 +27,7 @@ solver: $(OBJS) main.c
 	gcc $(CFLAGS) $(OBJS) main.c -o solver
 
 tags: $(SRCS) $(HEADS)
-	-ctags -R .
+	-ctags -R $(SRCS) $(HEADS)
 
 clean:
-	-rm -f *.o solver *.gcno *.gcov *.gcda gmon.out
+	-rm -f *.o solver *.gcno *.gcov *.gcda gmon.out tags
